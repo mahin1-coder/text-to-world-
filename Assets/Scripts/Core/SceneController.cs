@@ -144,6 +144,8 @@ namespace TextToWorld.Core
 
         private void SpawnObject(CommandParser.ParsedCommand cmd)
         {
+            Log("[SceneController] spawn reached", LogType.Log);
+
             // Generate ID if not provided
             string id = cmd.TargetId ?? _worldState.GenerateId(cmd.ObjectType);
 

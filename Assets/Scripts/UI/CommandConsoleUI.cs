@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using TextToWorld.Core;
 
 namespace TextToWorld.UI
@@ -10,8 +11,8 @@ namespace TextToWorld.UI
     public class CommandConsoleUI : MonoBehaviour
     {
         [Header("Settings")]
-        [SerializeField] private KeyCode toggleKey = KeyCode.Tab;
-        [SerializeField] private KeyCode alternateToggleKey = KeyCode.BackQuote;
+    [SerializeField] private Key toggleKey = Key.Tab;
+    [SerializeField] private Key alternateToggleKey = Key.Backquote;
 
         [Header("Appearance")]
         [SerializeField] private int fontSize = 16;
@@ -63,8 +64,11 @@ namespace TextToWorld.UI
 
         private void Update()
         {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
             // Toggle console visibility
-            if (Input.GetKeyDown(toggleKey) || Input.GetKeyDown(alternateToggleKey))
+            if (keyboard[toggleKey].wasPressedThisFrame || keyboard[alternateToggleKey].wasPressedThisFrame)
             {
                 _isVisible = !_isVisible;
                 
@@ -79,11 +83,11 @@ namespace TextToWorld.UI
             // Handle history navigation when console is visible
             if (_isVisible)
             {
-                if (Input.GetKeyDown(KeyCode.UpArrow))
+                if (keyboard[Key.UpArrow].wasPressedThisFrame)
                 {
                     NavigateHistory(-1);
                 }
-                else if (Input.GetKeyDown(KeyCode.DownArrow))
+                else if (keyboard[Key.DownArrow].wasPressedThisFrame)
                 {
                     NavigateHistory(1);
                 }
@@ -144,12 +148,15 @@ namespace TextToWorld.UI
 
             GUILayout.EndArea();
 
-            // Handle Enter key
-            Event e = Event.current;
-            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Return && !string.IsNullOrWhiteSpace(_inputText))
+            // Handle Enter key via Input System when input is focused
+            var kb = Keyboard.current;
+            if (kb != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame))
             {
-                ExecuteInput();
-                e.Use();
+                if (GUI.GetNameOfFocusedControl() == "CommandInput" && !string.IsNullOrWhiteSpace(_inputText))
+                {
+                    ExecuteInput();
+                    Event.current.Use();
+                }
             }
         }
 
@@ -207,14 +214,23 @@ namespace TextToWorld.UI
             // Echo command
             AppendOutput($"> {command}");
 
-            // Execute
+            // Execute through SceneController
             if (_sceneController != null)
             {
                 _sceneController.ExecuteCommand(command);
             }
             else
             {
-                AppendOutput("<color=red>Error: SceneController not found</color>");
+                // Fallback: try legacy CommandReceiver if present
+                var receiver = FindFirstObjectByType<CommandReceiver>();
+                if (receiver != null)
+                {
+                    receiver.ExecuteLegacyCommand(command);
+                }
+                else
+                {
+                    AppendOutput("<color=red>Error: SceneController not found</color>");
+                }
             }
 
             // Auto-scroll to bottom

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace TextToWorld.Player
 {
@@ -74,8 +75,11 @@ namespace TextToWorld.Player
 
         private void HandleMouseLook()
         {
-            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+            if (Mouse.current == null) return;
+
+            Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+            float mouseX = mouseDelta.x * mouseSensitivity;
+            float mouseY = mouseDelta.y * mouseSensitivity;
 
             if (invertY) mouseY = -mouseY;
 
@@ -115,8 +119,15 @@ namespace TextToWorld.Player
             }
 
             // Get input
-            float horizontal = Input.GetAxis("Horizontal");
-            float vertical = Input.GetAxis("Vertical");
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            float horizontal = 0f;
+            float vertical = 0f;
+            if (keyboard.aKey.isPressed) horizontal -= 1f;
+            if (keyboard.dKey.isPressed) horizontal += 1f;
+            if (keyboard.sKey.isPressed) vertical -= 1f;
+            if (keyboard.wKey.isPressed) vertical += 1f;
 
             // Calculate move direction relative to player facing
             Vector3 move = transform.right * horizontal + transform.forward * vertical;
@@ -124,7 +135,7 @@ namespace TextToWorld.Player
 
             // Apply sprint
             float speed = moveSpeed;
-            if (Input.GetKey(KeyCode.LeftShift))
+            if (keyboard.leftShiftKey.isPressed)
             {
                 speed *= sprintMultiplier;
             }
@@ -133,7 +144,7 @@ namespace TextToWorld.Player
             _controller.Move(move * speed * Time.deltaTime);
 
             // Jump
-            if (Input.GetButtonDown("Jump") && _isGrounded)
+            if (keyboard.spaceKey.wasPressedThisFrame && _isGrounded)
             {
                 _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             }
@@ -152,13 +163,16 @@ namespace TextToWorld.Player
         private void HandleCursorLock()
         {
             // Toggle cursor lock with Escape
-            if (Input.GetKeyDown(KeyCode.Escape))
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            if (keyboard.escapeKey.wasPressedThisFrame)
             {
                 LockCursor(!_cursorLocked);
             }
 
             // Re-lock on click
-            if (!_cursorLocked && Input.GetMouseButtonDown(0))
+            if (!_cursorLocked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 LockCursor(true);
             }

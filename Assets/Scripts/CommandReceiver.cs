@@ -5,6 +5,13 @@ using UnityEngine;
 
 public class CommandReceiver : MonoBehaviour
 {
+    // Legacy entry point for direct text commands (fallback)
+    public void ExecuteLegacyCommand(string command)
+    {
+        Debug.Log("[CommandReceiver] (legacy) " + command);
+        // Extend here if you want to reuse the JSON parser path for text commands.
+    }
+
     [Serializable]
     private class Vector3Data
     {
